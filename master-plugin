@@ -1,0 +1,108 @@
+#!/bin/bash
+echo ""
+echo "PLUGIN LIST of NNN FILE MANAGER"
+echo "    0) EXIT"
+echo "  Converters"
+echo "    1) Media converter such as mp4 to mp3, mpv to mp4, etc..."
+echo "    2) PDF to Image Converter"
+echo "    3) Document converter such as odt to docx, etc..."
+echo "    4) Inkscape to PDF converter"
+echo ""
+echo "  Reducing size, Resizing, Scaling, Cutting, etc..."
+echo "    5) Reducing PDF file size"
+echo "    6) Extracting PDF page[s]"
+echo "    7) Rotating PDF page[s]"
+echo "    8) Extracting/Cutting Video"
+echo "    9) Scaling or resizing Width and Height of Video"
+echo ""
+echo "  Others"
+echo "    10) Changing Default Application to open file[s]"
+echo "    11) Inserting page numbers to PDF file"
+echo "    12) Rsync the file to mshx230i.local"
+echo ""
+read -ep "Type the number of your choice: " num
+
+case $num in
+	0)
+		exit
+		;;
+	1)
+		echo "    input file is ---> $1"
+		read -ep "    output file name with extension: " ofn
+		ffmpeg -i "$1" "$ofn"
+		;;
+	2)
+		echo "    input file ---> $1"
+		read -ep "    output format [jpeg or png]: " opf
+		read -ep "    output file name: " opn
+		pdftoppm "-$opf" "$1" "$opn"
+		;;
+	3)
+		echo "    input file is ---> $1"
+		read -ep "    output format extension [docx, xlsx, pptx, etc.]: " ofn
+		libreoffice --headless --convert-to "$ofn" "$1"
+		;;
+	4)
+		echo "    input file is ---> $1"
+		read -ep "    output pdf file name WITHOUT extension: " ofn
+		inkscape --export-type=pdf "$1" --export-filename="$ofn"
+		;;
+	5)
+		echo "    input file is ---> $1"
+		read -ep "    output file name with extension: " ofn
+		ps2pdf "$1" "$ofn"
+		;;
+	6)
+		echo "    input file is ---> $1"
+		read -ep "    page range to be extracted [Eg. 3-7 or 2,5,6-9]: " range
+		read -ep "    output file name with extension: " ofn
+		pdftk "$1" cat "$range" output "$ofn"
+		;;
+	7)
+		echo "    input file is ---> $1"
+		read -ep "    page range or page[s] to rotate [Eg. 3-7 or 2,5,6-9]: " range
+		read -ep "    rotation degree in clockwise [Eg. ease, south, west, left, right, down]: " dd
+		read -ep "    output file name with extension: " ofn
+		pdftk "$1" cat "$range""$dd" output "$ofn"
+		;;
+	8)
+		echo "    input file is ---> $1"
+		read -ep "    selection range of START [Eg. 00:03:00]: " ss
+		read -ep "    selection range of END [Eg. 00:33:00]: " to
+		read -ep "    output file name with the same extension: " ofn
+		ffmpeg -i "$1" -ss "$ss" -to "$to" -c copy "$ofn"
+		;;
+	9)
+		echo "    input file is ---> $1"
+		read -ep "    output sizes of Width and Height"$'\n'"    [Eg. -1:720 or -2:720 or 1200:-1 or 1200:-2]: " ops
+		read -ep "    output file name with the same extension: " ofn
+		ffmpeg -i "$1" -vf scale="$ops" "$ofn"
+		;;
+    10)
+        ftype=$(xdg-mime query filetype "$1")
+        curdef=$(xdg-mime query default $ftype)
+        notify-send -t 9000 "xdg-mime" "Filetype is $ftype.\nCurrent Default $curdef."
+        if [[ -z $(echo $WAYLAND_DISPLAY) ]]; then
+            # setdef=$(ls /usr/share/applications | rofi -i -mesg "Current: $curdef" -dmenu -p "Select Default")
+            setdef=$(cat /home/msh/.config/nnn/plugins/desktopfiles | rofi -i -mesg "Current: $curdef" -dmenu -p "Select Default")
+        else
+            # setdef=$(ls /usr/share/applications | wofi -S dmenu)
+            setdef=$(cat /home/msh/.config/nnn/plugins/desktopfiles | wofi -S dmenu)
+        fi
+        [[ ! -z $setdef ]] && xdg-mime default $setdef $ftype
+        ;;
+	11)
+		echo "    input file is ---> $1"
+		read -ep "    type something before page [%Page of %EndPage]: " textbp
+		read -ep "    output file name with extension: " ofn
+		cpdf -add-text "$textbp - Page %Page of %EndPage" -font "Courier" -font-size 12 -bottom 15 "$1" -o "$ofn"
+		;;
+    12)
+        dir=/home/msh/.config/nnn/plugins
+        ip=$(cat $dir/ip-history | wofi -i -d)
+        (echo "$ip" && cat $dir/ip-history) | awk '!_[$0]++' | head -n 7 > $dir/ip-history-tmp &&
+            mv $dir/ip-history-tmp $dir/ip-history
+        [[ -d "$1" ]] && rsync -r -P "$1" msh@"$ip":/home/msh/rsyncin/ 
+        [[ -f "$1" ]] && rsync -P "$1" msh@"$ip":/home/msh/rsyncin/ 
+        ;;
+esac
