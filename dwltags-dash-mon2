@@ -1,5 +1,8 @@
 #!/bin/dash
 
+# The dash script for getting dwl tags' info, layout and title for two monitors.
+# Replace eDP-1 and HDMI-A-1 with your monitors' names.
+
 logs=$(tail -n 12 ~/.config/dwlb/dwllogs | grep "HDMI-A-1")
 
 if [ -z $logs ]; then
