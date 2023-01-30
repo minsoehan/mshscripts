@@ -2,7 +2,7 @@
 
 logs=$(tail -n 12 ~/.config/dwlb/dwllogs | grep "HDMI-A-1")
 
-if [ -e $logs ]; then
+if [ -z $logs ]; then
     output6=$(tail -n 6 ~/.config/dwlb/dwllogs)
     active=$(echo "$output6" | awk '/eDP-1 tags/ {print $3}')
     selected=$(echo "$output6" | awk '/eDP-1 tags/ {print $4}')
