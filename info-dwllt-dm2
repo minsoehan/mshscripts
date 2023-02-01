@@ -1,0 +1,29 @@
+#!/bin/dash
+
+getlogs=$(tail -n 12 ~/.config/dwlb/dwllogs)
+ckmon=$(echo "$getlogs" | grep "HDMI-A-1")
+
+if [ -z $ckmon ]; then
+    slogs=$(tail -n 6 ~/.config/dwlb/dwllogs)
+    layout=$(echo "$slogs" | awk '/eDP-1 layout/ {print $3}')
+    title=$(echo "$slogs" | grep "eDP-1 title" | cut -d ' ' -f 3-)
+    fck=$(echo "$slogs" | awk '/eDP-1 floating/ {print $3}')
+    [ $fck -eq 1 ] && fst="Floating:" || fst="[-]"
+    echo "$layout: $fst $title"
+else
+    edpsel=$(echo "$getlogs" | awk '/eDP-1 selmon/ {print $3}')
+    hdmisel=$(echo "$getlogs" | awk '/HDMI-A-1 selmon/ {print $3}')
+    if [ $edpsel -eq 1 ]; then
+        edplayout=$(echo "$getlogs" | awk '/eDP-1 layout/ {print $3}')
+        edptitle=$(echo "$getlogs" | grep "eDP-1 title" | cut -d ' ' -f 3-)
+        edpfck=$(echo "$getlogs" | awk '/eDP-1 floating/ {print $3}')
+        [ $edpfck -eq 1 ] && edpfst="Floating:" || edpfst="[-]"
+        echo "$edplayout: $edpfst $edptitle"
+    else
+        hdmilayout=$(echo "$getlogs" | awk '/HDMI-A-1 layout/ {print $3}')
+        hdmititle=$(echo "$getlogs" | grep "HDMI-A-1 title" | cut -d ' ' -f 3-)
+        hdmifck=$(echo "$getlogs" | awk '/HDMI-A-1 floating/ {print $3}')
+        [ $hdmifck -eq 1 ] && hdmifst="Floating:" || hdmifst="[-]"
+        echo "$hdmilayout: $hdmifst $hdmititle"
+    fi
+fi
