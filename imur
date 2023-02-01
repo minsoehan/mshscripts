@@ -82,10 +82,10 @@ case $1 in
         echo "------------------------------------------------------------"
         echo "   Do one of search, install, download and update after mur"
         echo "   Examples:"
-        echo "    ~ $ mur search <keyword>"
-        echo "    ~ $ mur install <packagename>"
-        echo "    ~ $ mur download <packagename>"
-        echo "    ~ $ mur update"
+        echo "    ~ $ imur search <keyword>"
+        echo "    ~ $ imur install <packagename>"
+        echo "    ~ $ imur download <packagename>"
+        echo "    ~ $ imur update"
         echo "------------------------------------------------------------"
         ;;
 esac
