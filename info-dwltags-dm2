@@ -1,0 +1,64 @@
+#!/bin/dash
+
+getlogs=$(tail -n 12 ~/.config/dwlb/dwllogs)
+ckmon=$(echo "$getlogs" | grep "HDMI-A-1")
+
+if [ -z $ckmon ]; then
+
+    slogs=$(tail -n 6 ~/.config/dwlb/dwllogs)
+    active=$(echo "$slogs" | awk '/eDP-1 tags/ {print $3}')
+    selected=$(echo "$slogs" | awk '/eDP-1 tags/ {print $4}')
+    tags='0 1 2 3 4 5 6 7 8'
+
+    echo -n "   "
+    for tag in $tags; do
+        mask=$((1<<tag))
+        tagname=$((tag+1))
+        echo -n "[$tagname]"
+        [ $((active & mask)) -ne 0 ] && echo -n "~"
+        [ $((selected & mask)) -ne 0 ] && echo -n "*"
+        echo -n "   "
+    done
+
+else
+
+    active1=$(echo "$getlogs" | awk '/eDP-1 tags/ {print $3}')
+    selected1=$(echo "$getlogs" | awk '/eDP-1 tags/ {print $4}')
+    active2=$(echo "$getlogs" | awk '/HDMI-A-1 tags/ {print $3}')
+    selected2=$(echo "$getlogs" | awk '/HDMI-A-1 tags/ {print $4}')
+    edpsel=$(echo "$getlogs" | awk '/eDP-1 selmon/ {print $3}')
+    hdmisel=$(echo "$getlogs" | awk '/HDMI-A-1 selmon/ {print $3}')
+
+    tags='0 1 2 3 4 5 6 7 8'
+
+    if [ $edpsel -eq 1 ]; then
+        echo -n " * eDP-1  "
+    else
+        echo -n "eDP-1  "
+    fi
+    for tag in $tags; do
+        mask=$((1<<tag))
+        tagname=$((tag+1))
+        echo -n "[$tagname]"
+        [ $((active1 & mask)) -ne 0 ] && echo -n "~"
+        [ $((selected1 & mask)) -ne 0 ] && echo -n "*"
+        echo -n "  "
+    done
+    echo "   "
+
+    if [ $hdmisel -eq 1 ]; then
+        echo -n " * HDMI-A-1  "
+    else
+        echo -n "HDMI-A-1  "
+    fi
+    for tag in $tags; do
+        mask=$((1<<tag))
+        tagname=$((tag+1))
+        echo -n "[$tagname]"
+        [ $((active2 & mask)) -ne 0 ] && echo -n "~"
+        [ $((selected2 & mask)) -ne 0 ] && echo -n "*"
+        echo -n "  "
+    done
+    echo "   "
+
+fi
