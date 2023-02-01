@@ -80,7 +80,7 @@ case $1 in
         ;;
     *)
         echo "------------------------------------------------------------"
-        echo "   Do one of search, install, download and update after mur"
+        echo "   Do one of search, install, download and update after imur"
         echo "   Examples:"
         echo "    ~ $ imur search <keyword>"
         echo "    ~ $ imur install <packagename>"
