@@ -1,0 +1,101 @@
+#!/bin/dash
+
+checkactivewindow_func () {
+    unset IFF IFFS IFG VAL
+    local NUM=1
+    # .grouped[] return NULL if not grouped.
+    # in that case of returning zero string makes setting variables in for loop go wrong
+    # workround is putting .grouped[] at last like '...,...,.grouped[]'
+    for i in $(hyprctl -j activewindow | jq -r '.floating,.fullscreen,.grouped[]'); do
+        local VAL=$(echo "IFF IFFS IFG" | cut -d ' ' -f $NUM)
+        eval $VAL=$i
+        local NUM=$((NUM+1))
+    done
+}
+checkactivewindow_func
+if [ "$IFF" = "true" ] || [ "$IFFS" = "true" ]; then
+    exit 0
+fi
+if [ -n "$IFG" ]; then
+    hyprctl dispatch togglegroup
+    exit 0
+fi
+
+# find reserved pixels - left top right bottom
+reservedpxltrb_func () {
+    unset RESL REST RESR RESB
+    local LTRB=$(hyprctl -j monitors | jq -r '.[] | select(.focused == true) | .reserved[]')
+    local NUM=1
+    for i in $LTRB; do
+        local VAL=$(echo "RESL REST RESR RESB" | cut -d ' ' -f $NUM)
+        eval $VAL=$i
+        NUM=$((NUM+1))
+    done
+    GAPSOUT=$(hyprctl getoption general:gaps_out | grep int: | cut -d ' ' -f 2)
+    BODSIZE=$(hyprctl getoption general:border_size | grep int: | cut -d ' ' -f 2)
+}
+
+# setting total reserved spaces of LEFTRES TOPRES RIGHTRES BOTTOMRES
+reservedpxltrb_func
+LEFTRES=$((RESL+GAPSOUT+BODSIZE))
+TOPRES=$((REST+GAPSOUT+BODSIZE))
+RIGHTRES=$((RESR+GAPSOUT+BODSIZE))
+BOTTOMRES=$((RESB+GAPSOUT+BODSIZE))
+
+activewindowinfo_func () {
+    unset MONITOR AWX AWY AWW AWH VAL
+    local NUM=1
+    for i in $(hyprctl -j activewindow | jq -r '. | .monitor,.at[],.size[]'); do
+        VAL=$(echo "MONITOR AWX AWY AWW AWH" | cut -d ' ' -f $NUM)
+        eval $VAL=$i
+        local NUM=$((NUM+1))
+    done
+}
+monitorinfo_func () {
+    unset OPX OPY OPW OPH VAL
+    local NUM=1
+    for i in $(hyprctl -j monitors | jq -r '.[] | select(.id == '$MONITOR') | .x,.y,.width,.height'); do
+        VAL=$(echo "OPX OPY OPW OPH" | cut -d ' ' -f $NUM)
+        eval $VAL=$i
+        local NUM=$((NUM+1))
+    done
+}
+
+activewindowinfo_func
+monitorinfo_func
+
+# use AWX as left edge & AWY as up edge of activewindow
+AWRIGHT=$((AWX+AWW))
+AWBOTTOM=$((AWY+AWH))
+# end of monitor
+TOPEND=$((OPY+TOPRES))
+RIGHTEND=$(((OPX+OPW)-RIGHTRES))
+BOTTOMEND=$(((OPY+OPH)-BOTTOMRES))
+LEFTEND=$((OPX+LEFTRES))
+# available width and height of output
+AVAILW=$((OPW-(LEFTRES+RIGHTRES)))
+AVAILH=$((OPH-(TOPRES+BOTTOMRES)))
+
+hyprctl dispatch togglegroup
+while true; do
+    activewindowinfo_func
+    if [ $((AWW)) -eq $((AVAILW)) ] && [ $((AWH)) -eq $((AVAILH)) ]; then
+        break
+    fi
+    if [ $((AWRIGHT)) -lt $((RIGHTEND)) ]; then
+        hyprctl --batch "dispatch movefocus r ; dispatch moveintogroup l"
+        sleep 0.5
+    fi
+    if [ $((AWBOTTOM)) -lt $((BOTTOMEND)) ]; then
+        hyprctl --batch "dispatch movefocus d ; dispatch moveintogroup u"
+        sleep 0.5
+    fi
+    if [ $((AWX)) -gt $((LEFTEND)) ]; then
+        hyprctl --batch "dispatch movefocus l ; dispatch moveintogroup r"
+        sleep 0.5
+    fi
+    if [ $((AWY)) -gt $((TOPEND)) ]; then
+        hyprctl --batch "dispatch movefocus u ; dispatch moveintogroup d"
+        sleep 0.5
+    fi
+done
